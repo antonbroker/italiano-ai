@@ -1,32 +1,47 @@
 const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
 
 if (!apiBaseUrl) {
+  console.error("VITE_API_BASE_URL is not defined. Please set it in your .env file.");
   throw new Error("VITE_API_BASE_URL is not defined. Please set it in your .env file.");
 }
 
 const API_BASE_URL = apiBaseUrl.replace(/\/$/, "");
 
+// Debug: log the API base URL in development
+if (import.meta.env.DEV) {
+  console.log("[API Client] Using API base URL:", API_BASE_URL);
+}
+
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE_URL}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers || {}),
-    },
-    credentials: "include",
-    ...options,
-  });
+  try {
+    const response = await fetch(`${API_BASE_URL}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(options.headers || {}),
+      },
+      credentials: "include",
+      ...options,
+    });
 
-  if (!response.ok) {
-    const errorBody = await response.json().catch(() => ({}));
-    const message = errorBody.message || "Request failed";
-    throw new Error(message);
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => ({}));
+      const message = errorBody.message || `Request failed with status ${response.status}`;
+      throw new Error(message);
+    }
+
+    if (response.status === 204) {
+      return null;
+    }
+
+    return response.json();
+  } catch (error) {
+    // If it's already an Error with a message, re-throw it
+    if (error instanceof Error && error.message) {
+      throw error;
+    }
+    // Network errors or other fetch failures
+    throw new Error(`Network error: ${error.message || 'Failed to connect to server'}`);
   }
-
-  if (response.status === 204) {
-    return null;
-  }
-
-  return response.json();
 }
 
 export const apiClient = {
