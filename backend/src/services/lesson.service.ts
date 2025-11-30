@@ -77,7 +77,7 @@ export const lessonService = {
     const lesson = await LessonModel.create({
       title: payload.title,
       description: payload.description ?? null,
-      level: payload.level,
+      level: payload.level as Lesson['level'],
       topics: payload.topics ?? [],
       duration: payload.duration ?? null,
       content: payload.content ?? null,
