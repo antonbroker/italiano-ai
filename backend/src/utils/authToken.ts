@@ -6,7 +6,7 @@ const TOKEN_EXPIRY = '7d';
 
 const baseCookieOptions = {
   httpOnly: true as const,
-  sameSite: 'lax' as const,
+  sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
   secure: env.nodeEnv === 'production',
   maxAge: 7 * 24 * 60 * 60 * 1000,
   path: '/',
@@ -21,6 +21,11 @@ export const setAuthCookie = (res: Response, token: string) => {
 };
 
 export const clearAuthCookie = (res: Response) => {
-  res.clearCookie(env.sessionCookieName, { path: '/' });
+  res.clearCookie(env.sessionCookieName, {
+    path: '/',
+    httpOnly: true,
+    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
+    secure: env.nodeEnv === 'production',
+  });
 };
 
