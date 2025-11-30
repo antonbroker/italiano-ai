@@ -7,7 +7,7 @@ import { clearAuthCookie, setAuthCookie, signAuthToken } from '../utils/authToke
 export const authController = {
   async me(req: Request, res: Response) {
     if (!req.user) {
-      throw new HttpError(401, 'Unauthorized');
+      return res.status(401).json({ message: 'Unauthorized' });
     }
     return res.json(req.user);
   },

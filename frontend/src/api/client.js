@@ -24,6 +24,11 @@ async function request(path, options = {}) {
     });
 
     if (!response.ok) {
+      // For /auth/me, 401 is expected when not logged in - don't throw error
+      if (path === "/auth/me" && response.status === 401) {
+        return null;
+      }
+      
       const errorBody = await response.json().catch(() => ({}));
       const message = errorBody.message || `Request failed with status ${response.status}`;
       throw new Error(message);
