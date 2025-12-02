@@ -1,9 +1,7 @@
 # Render static site configuration for SPA routing
 # This file ensures all routes are served by index.html
 
-staticPublishPath: ./dist
 routes:
   - type: rewrite
     source: /*
     destination: /index.html
-
