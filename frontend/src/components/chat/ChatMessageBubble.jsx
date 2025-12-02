@@ -31,10 +31,12 @@ export default function ChatMessageBubble({ message, isUser }) {
           <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{message.message}</p>
         </div>
         <span className="text-xs text-gray-400 mt-1 px-2">
-          {new Date(message.created_date).toLocaleTimeString([], { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-          })}
+          {message.createdAt 
+            ? new Date(message.createdAt).toLocaleTimeString([], { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+              })
+            : 'Just now'}
         </span>
       </div>
     </motion.div>

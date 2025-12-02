@@ -38,7 +38,30 @@ async function request(path, options = {}) {
       return null;
     }
 
-    return response.json();
+    // Check if response has content before parsing JSON
+    const contentType = response.headers.get('content-type');
+    const contentLength = response.headers.get('content-length');
+    
+    // If no content or content-length is 0, return null
+    if (contentLength === '0' || !contentType?.includes('application/json')) {
+      return null;
+    }
+
+    // Get response text first to handle empty responses
+    const text = await response.text();
+    
+    // If empty, return null
+    if (!text || text.trim() === '') {
+      return null;
+    }
+
+    // Try to parse JSON
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      console.error('[API Client] Failed to parse JSON response:', parseError, 'Response text:', text);
+      throw new Error('Invalid JSON response from server');
+    }
   } catch (error) {
     // If it's already an Error with a message, re-throw it
     if (error instanceof Error && error.message) {

@@ -1,0 +1,4 @@
+# Frontend dist directory - ignore everything except _render.yaml
+/frontend/dist/*
+!/frontend/dist/_render.yaml
+

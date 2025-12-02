@@ -1,7 +1,4 @@
-# Render static site configuration for SPA routing
-# This file ensures all routes are served by index.html
-
 routes:
   - type: rewrite
-    source: /*
+    source: /.*
     destination: /index.html

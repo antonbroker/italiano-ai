@@ -10,22 +10,38 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/context/AuthContext.jsx";
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user, lessons, progress, isLoading: authLoading } = useAuth();
 
-  const { data: lessons, isLoading: lessonsLoading } = useQuery({
+  // Use lessons and progress from AuthContext if available, otherwise fetch
+  const { data: lessonsData, isLoading: lessonsLoading, error: lessonsError } = useQuery({
     queryKey: ["lessons"],
-    queryFn: () => apiClient.lessons.list(),
-    initialData: []
+    queryFn: async () => {
+      try {
+        const data = await apiClient.lessons.list();
+        console.log('[Home] Lessons loaded:', data);
+        return data;
+      } catch (error) {
+        console.error('[Home] Error loading lessons:', error);
+        throw error;
+      }
+    },
+    initialData: lessons.length > 0 ? lessons : [],
+    enabled: lessons.length === 0, // Only fetch if not already in context
+    retry: 1,
   });
 
   const { data: progressData } = useQuery({
     queryKey: ["userProgress", user?.email],
     queryFn: () => apiClient.userProgress.list({ userEmail: user?.email }),
-    enabled: !!user?.email,
-    initialData: []
+    enabled: !!user?.email && progress.length === 0, // Only fetch if not already in context
+    initialData: progress
   });
 
-  const completedCount = progressData?.filter(p => p.completed).length || 0;
+  // Use context data if available, otherwise use query data
+  const displayLessons = lessons.length > 0 ? lessons : (lessonsData || []);
+  const displayProgress = progress.length > 0 ? progress : (progressData || []);
+
+  const completedCount = displayProgress?.filter(p => p.completed).length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-green-50/30 to-coral-50/20">
@@ -100,7 +116,7 @@ export default function Home() {
                 <BookOpen className="w-6 h-6 text-green-600" />
               </div>
               <div>
-                <p className="text-3xl font-bold text-gray-900">{lessons?.length || 0}</p>
+                <p className="text-3xl font-bold text-gray-900">{displayLessons?.length || 0}</p>
                 <p className="text-sm text-gray-600">Total Lessons</p>
               </div>
             </div>
@@ -144,7 +160,7 @@ export default function Home() {
           <p className="text-gray-600">Choose a lesson to start your Italian journey</p>
         </motion.div>
 
-        {lessonsLoading ? (
+        {(lessonsLoading || authLoading) ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse">
@@ -152,13 +168,23 @@ export default function Home() {
               </div>
             ))}
           </div>
+        ) : lessonsError ? (
+          <div className="bg-red-50 border border-red-100 text-red-700 rounded-lg p-4">
+            <p className="font-medium">Error loading lessons</p>
+            <p className="text-sm mt-1">{lessonsError.message || "Failed to fetch lessons"}</p>
+          </div>
+        ) : !displayLessons || displayLessons.length === 0 ? (
+          <div className="bg-yellow-50 border border-yellow-100 text-yellow-700 rounded-lg p-4">
+            <p className="font-medium">No lessons available</p>
+            <p className="text-sm mt-1">Lessons will appear here once they are added to the system.</p>
+          </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {lessons.map((lesson, index) => (
+            {displayLessons.map((lesson, index) => (
               <LessonCard
                 key={lesson.id}
                 lesson={lesson}
-                progress={progressData?.find(p => p.lesson_id === lesson.id)}
+                progress={displayProgress?.find(p => p.lessonId === lesson.id || p.lesson_id === lesson.id)}
                 index={index}
               />
             ))}
