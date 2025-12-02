@@ -4,12 +4,26 @@ import { env } from '../config/env';
 
 const TOKEN_EXPIRY = '7d';
 
-const baseCookieOptions = {
-  httpOnly: true as const,
-  sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-  secure: env.nodeEnv === 'production',
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-  path: '/',
+// Cookie options for production (cross-origin) and development (same-origin)
+const getCookieOptions = () => {
+  const isProduction = env.nodeEnv === 'production';
+  
+  const options = {
+    httpOnly: true as const,
+    sameSite: (isProduction ? 'none' : 'lax') as 'none' | 'lax',
+    secure: isProduction,
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    path: '/',
+    // Do NOT set domain - allows cookies to work cross-origin
+  };
+
+  if (isProduction) {
+    console.log('[Cookie] Production mode - using SameSite=None, Secure=true');
+  } else {
+    console.log('[Cookie] Development mode - using SameSite=Lax, Secure=false');
+  }
+
+  return options;
 };
 
 export const signAuthToken = (userId: string) => {
@@ -17,15 +31,17 @@ export const signAuthToken = (userId: string) => {
 };
 
 export const setAuthCookie = (res: Response, token: string) => {
-  res.cookie(env.sessionCookieName, token, baseCookieOptions);
+  const options = getCookieOptions();
+  res.cookie(env.sessionCookieName, token, options);
+  console.log(`[Cookie] Set cookie: ${env.sessionCookieName} (SameSite=${options.sameSite}, Secure=${options.secure})`);
 };
 
 export const clearAuthCookie = (res: Response) => {
+  const options = getCookieOptions();
   res.clearCookie(env.sessionCookieName, {
-    path: '/',
-    httpOnly: true,
-    sameSite: (env.nodeEnv === 'production' ? 'none' : 'lax') as 'none' | 'lax',
-    secure: env.nodeEnv === 'production',
+    ...options,
+    // Must include all options when clearing
   });
+  console.log(`[Cookie] Cleared cookie: ${env.sessionCookieName}`);
 };
 

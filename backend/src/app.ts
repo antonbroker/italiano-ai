@@ -13,29 +13,46 @@ import { authenticate } from './middleware/authenticate';
 
 const app = express();
 
+// Parse allowed origins from environment
+const allowedOrigins = env.corsOrigin.split(',').map((origin) => origin.trim());
+
+console.log('[CORS] Allowed origins:', allowedOrigins);
+console.log('[CORS] Node environment:', env.nodeEnv);
+
+// CORS configuration with explicit preflight handling
 app.use(
   cors({
-    origin: env.corsOrigin.split(',').map((origin) => origin.trim()),
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc.)
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      // Check if origin is in allowed list
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn('[CORS] Blocked origin:', origin);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    exposedHeaders: ['Set-Cookie'],
+    maxAge: 86400, // 24 hours
   }),
 );
 
 // Configure Helmet to work with cross-origin cookies
 app.use(
   helmet({
+    contentSecurityPolicy: false,
     crossOriginEmbedderPolicy: false,
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        styleSrc: ["'self'", "'unsafe-inline'"],
-        scriptSrc: ["'self'"],
-        imgSrc: ["'self'", 'data:', 'https:'],
-      },
-    },
+    crossOriginResourcePolicy: { policy: 'cross-origin' },
   }),
 );
+
 app.use(express.json({ limit: '1mb' }));
 app.use(cookieParser());
 app.use(morgan(env.nodeEnv === 'production' ? 'combined' : 'dev'));
