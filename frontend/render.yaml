@@ -1,14 +1,9 @@
-# Render configuration for frontend static site
-# This ensures SPA routing works correctly
+# Render static site configuration for SPA routing
+# This file ensures all routes are served by index.html
 
-services:
-  - type: web
-    name: italiano-ai-frontend
-    env: static
-    buildCommand: npm run build
-    staticPublishPath: dist
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+staticPublishPath: ./dist
+routes:
+  - type: rewrite
+    source: /*
+    destination: /index.html
 
